@@ -1,0 +1,5 @@
+PostgreSQL Docker image 18+
+docker run --name postgres -d -p 5432:5432 -e POSTGRES_PASSWORD=xxxxxx -v postgres_data:/var/lib/postgresql postgres
+
+PostgreSQL Docker image 17-
+docker run --name postgres -d -p 5432:5432 -e POSTGRES_PASSWORD=xxxxxxx -v postgres_data:/var/lib/postgresql/data postgres

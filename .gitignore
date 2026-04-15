@@ -1,0 +1,17 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.dbmdl
+*.cache
+TestResults/
+artifacts/
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# secrets / local config
+appsettings.Development.json
+.env
