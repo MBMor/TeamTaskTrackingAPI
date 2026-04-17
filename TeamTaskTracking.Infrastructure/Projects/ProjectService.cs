@@ -1,7 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using FluentValidation;
 using TeamTaskTracking.Application.Projects;
 using TeamTaskTracking.Domain.Projects;
 using TeamTaskTracking.Infrastructure.Persistence;
@@ -11,10 +9,17 @@ namespace TeamTaskTracking.Infrastructure.Projects;
 internal class ProjectService : IProjectService
 {
     private readonly AppDbContext _dbContext;
+    private readonly IValidator<CreateProjectCommand> _createValidator;
+    private readonly IValidator<UpdateProjectCommand> _updateValidator;
 
-    public ProjectService(AppDbContext dbContext)
+    public ProjectService(
+        AppDbContext dbContext, 
+        IValidator<CreateProjectCommand> createValidator, 
+        IValidator<UpdateProjectCommand> updateValidator)
     {
         _dbContext = dbContext;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
     }
 
     public async Task<IReadOnlyCollection<ProjectDto>> GetAllAsync(CancellationToken cancellationToken)
@@ -46,6 +51,8 @@ internal class ProjectService : IProjectService
     }
     public async Task<ProjectDto> CreateAsync(CreateProjectCommand command, CancellationToken cancellationToken)
     {
+        await _createValidator.ValidateAndThrowAsync(command, cancellationToken);
+
         var project = new Project(command.Name, command.Description);
 
         _dbContext.Projects.Add(project);
@@ -60,6 +67,8 @@ internal class ProjectService : IProjectService
 
     public async Task<bool> UpdateAsync(Guid id, UpdateProjectCommand command, CancellationToken cancellationToken)
     {
+        await _updateValidator.ValidateAndThrowAsync(command, cancellationToken);
+
         var project = await _dbContext.Projects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
 
         if (project is null)

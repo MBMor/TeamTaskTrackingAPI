@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using TeamTaskTracking.Api.Contracts.Projects;
 using TeamTaskTracking.Application.Projects;
+
 
 namespace TeamTaskTracking.Api.Controllers;
 
@@ -40,10 +42,12 @@ public sealed class ProjectsController : ControllerBase
     [ProducesResponseType(typeof(ProjectDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ProjectDto>> Create(
-        [FromBody] CreateProjectCommand request, 
+        CreateProjectRequest request, 
         CancellationToken cancellationToken)
     {
-        var result = await _projectService.CreateAsync(request, cancellationToken);
+        var command = new CreateProjectCommand(request.Name, request.Description);
+
+        var result = await _projectService.CreateAsync(command, cancellationToken);
 
         return CreatedAtAction(
             nameof(GetById), 
@@ -55,12 +59,15 @@ public sealed class ProjectsController : ControllerBase
     [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Update(
         Guid id, 
-        [FromBody] UpdateProjectCommand request, 
+        UpdateProjectRequest request, 
         CancellationToken cancellationToken)
     {
-        var isUpdated = await _projectService.UpdateAsync(id, request, cancellationToken);
+        var command = new UpdateProjectCommand(request.Name, request.Description);
+
+        var isUpdated = await _projectService.UpdateAsync(id, command, cancellationToken);
 
         if (!isUpdated)
             return NotFound();
