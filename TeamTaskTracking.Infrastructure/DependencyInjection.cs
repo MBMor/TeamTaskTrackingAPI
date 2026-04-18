@@ -1,12 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using TeamTaskTracking.Application.Projects;
+using TeamTaskTracking.Application.Users;
+using TeamTaskTracking.Domain.Users;
 using TeamTaskTracking.Infrastructure.Persistence;
 using TeamTaskTracking.Infrastructure.Projects;
+using TeamTaskTracking.Infrastructure.Users;
 
 namespace TeamTaskTracking.Infrastructure;
 
@@ -21,6 +22,9 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString));
 
         services.AddScoped<IProjectService, ProjectService>();
+        services.AddScoped<IUserService, UserService>();
+
+        services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
         return services;
 

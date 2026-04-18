@@ -51,12 +51,37 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             return true;
         }
 
+        if (exception is InvalidOperationException)
+        {
+            var problemDetails = new ProblemDetails
+            {
+                Title = "The request could not be completed.",
+                Detail = _environment.IsDevelopment()
+                    ? exception.Message
+                    : "The request conflicts with the current state of the resource.",
+                Status = StatusCodes.Status409Conflict,
+                Instance = httpContext.Request.Path
+            };
+
+            problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+
+            if (_environment.IsDevelopment())
+            {
+                problemDetails.Extensions["exception"] = exception.GetType().FullName;
+                problemDetails.Extensions["stackTrace"] = exception.StackTrace;
+            }
+
+            httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+            await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+            return true;
+        }
+
         _logger.LogError(
             exception,
             "Unhandled exception occurred. TraceId: {TraceId}",
             httpContext.TraceIdentifier);
 
-        var problemDetails = new ProblemDetails
+        var unexpectedProblem = new ProblemDetails
         {
             Title = "An unexpected error occurred.",
             Detail = _environment.IsDevelopment()
@@ -66,18 +91,18 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             Instance = httpContext.Request.Path
         };
 
-        problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+        unexpectedProblem.Extensions["traceId"] = httpContext.TraceIdentifier;
 
         if (_environment.IsDevelopment())
         {
-            problemDetails.Extensions["exception"] = exception.GetType().FullName;
-            problemDetails.Extensions["stackTrace"] = exception.StackTrace;
+            unexpectedProblem.Extensions["exception"] = exception.GetType().FullName;
+            unexpectedProblem.Extensions["stackTrace"] = exception.StackTrace;
         }
 
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
         httpContext.Response.ContentType = "application/problem+json";
 
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(unexpectedProblem, cancellationToken);
 
         return true;
     }
