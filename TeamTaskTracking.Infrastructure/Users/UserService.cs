@@ -26,7 +26,7 @@ public sealed class UserService : IUserService
     {
         await _registerValidator.ValidateAndThrowAsync(command, cancellationToken);
 
-        var normalizedEmail = command.Email.Trim().ToLowerInvariant();
+        var normalizedEmail = Email.Create(command.Email);
 
         var emailExists = await _dbContext.Users
             .AsNoTracking()

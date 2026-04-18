@@ -7,7 +7,7 @@ namespace TeamTaskTracking.Domain.Users;
 public sealed class User
 {
     public Guid Id { get; set; }
-    public string Email { get; private set; } = string.Empty;
+    public Email Email { get; private set; } = null!;
     public string FirstName { get; private set; } = string.Empty;
     public string LastName { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
@@ -15,7 +15,7 @@ public sealed class User
 
     private User()
     { }
-    public User(string email, string firstName, string lastName)
+    public User(Email email, string firstName, string lastName)
     {
         Id = Guid.NewGuid();
         SetEmail(email);
@@ -32,12 +32,9 @@ public sealed class User
         PasswordHash = passwordHash;
     }
 
-    private void SetEmail(string email)
+    private void SetEmail(Email email)
     {
-        if (string.IsNullOrEmpty(email))
-            throw new ArgumentException("Email is required.", nameof(email));
-
-        Email = email.Trim().ToLowerInvariant();
+        Email = email;
     }
 
     private void SetFirstName(string firstName)

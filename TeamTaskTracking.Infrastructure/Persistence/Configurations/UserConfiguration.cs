@@ -13,8 +13,14 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Email)
+            .HasConversion(
+            email => email.Value,
+            value => Email.Create(value))
             .HasMaxLength(254)
             .IsRequired();
+
+        builder.HasIndex(x => x.Email)
+            .IsUnique();
 
         builder.Property(x => x.FirstName)
             .HasMaxLength(100)
