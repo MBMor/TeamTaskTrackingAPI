@@ -2,9 +2,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Application.Projects;
 using TeamTaskTracking.Application.Users;
 using TeamTaskTracking.Domain.Users;
+using TeamTaskTracking.Infrastructure.Auth;
 using TeamTaskTracking.Infrastructure.Persistence;
 using TeamTaskTracking.Infrastructure.Projects;
 using TeamTaskTracking.Infrastructure.Users;
@@ -21,8 +23,14 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(connectionString));
 
+        services.Configure<JwtOptions>(
+            configuration.GetSection(JwtOptions.SectionName));
+
         services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<IUserService, UserService>();
+
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ITokenService, TokenService>();
 
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 

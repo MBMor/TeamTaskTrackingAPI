@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using TeamTaskTracking.Application.Common.Exceptions;
 using TeamTaskTracking.Application.Users;
 using TeamTaskTracking.Domain.Users;
 using TeamTaskTracking.Infrastructure.Persistence;
@@ -32,8 +33,8 @@ public sealed class UserService : IUserService
             .AsNoTracking()
             .AnyAsync(x => x.Email == normalizedEmail, cancellationToken);
 
-        if (emailExists) 
-            throw new InvalidOperationException("A user with this email already exists.");
+        if (emailExists)
+            throw new DuplicateEmailException(command.Email);
 
         var user = new User(
             normalizedEmail,

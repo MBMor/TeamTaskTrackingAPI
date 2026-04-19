@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using TeamTaskTracking.Application.Common.Exceptions;
 
 namespace TeamTaskTracking.Api.Middleware;
 
@@ -51,6 +52,25 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             return true;
         }
 
+        if (exception is InvalidCredentialsException)
+        {
+            var problemDetails = new ProblemDetails
+            {
+                Title = "Authentication failed.",
+                Detail = _environment.IsDevelopment()
+                    ? exception.Message
+                    : "Invalid credentials.",
+                Status = StatusCodes.Status401Unauthorized,
+                Instance = httpContext.Request.Path
+            };
+
+            problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+
+            httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+            return true;
+        }
+
         if (exception is InvalidOperationException)
         {
             var problemDetails = new ProblemDetails
@@ -72,6 +92,27 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             }
 
             httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+            await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+            return true;
+        }
+
+        if (exception is DuplicateEmailException ex)
+        {
+            var problemDetails = new ProblemDetails
+            {
+                Title = "Email already in use.",
+                Detail = _environment.IsDevelopment() ? ex.Message : null,
+                Status = StatusCodes.Status409Conflict,
+                Instance = httpContext.Request.Path,
+                Type = "https://httpstatuses.com/409"
+            };
+
+            problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+            problemDetails.Extensions["errorCode"] = "AUTH_DUPLICATE_EMAIL";
+
+            httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+            httpContext.Response.ContentType = "application/problem+json";
+
             await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
             return true;
         }
