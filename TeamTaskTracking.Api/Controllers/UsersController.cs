@@ -26,12 +26,15 @@ public sealed class UsersController : ControllerBase
         var lastName = User.FindFirstValue(ClaimTypes.Surname)
             ?? User.FindFirstValue("family_name");
 
+        var role = User.FindFirstValue(ClaimTypes.Role);
+
         return Ok(new
         {
             Id = userId,
             Email = email,
             FirstName = firstName,
-            LastName = lastName
+            LastName = lastName,
+            Role = role
         });
     }
 }

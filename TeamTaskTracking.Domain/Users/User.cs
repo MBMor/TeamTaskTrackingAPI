@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace TeamTaskTracking.Domain.Users;
+﻿namespace TeamTaskTracking.Domain.Users;
 
 public sealed class User
 {
@@ -11,6 +7,7 @@ public sealed class User
     public string FirstName { get; private set; } = string.Empty;
     public string LastName { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
+    public UserRole Role { get; private set; }  
     public DateTime CreatedAtUtc { get; set; }
 
     private User()
@@ -21,6 +18,7 @@ public sealed class User
         SetEmail(email);
         SetFirstName(firstName);
         SetLastName(lastName);
+        Role = UserRole.User;
         CreatedAtUtc = DateTime.UtcNow;
     }
 

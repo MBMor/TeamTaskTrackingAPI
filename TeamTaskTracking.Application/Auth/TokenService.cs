@@ -27,6 +27,7 @@ public sealed class TokenService : ITokenService
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email.Value),
             new(JwtRegisteredClaimNames.GivenName, user.FirstName),
+            new(ClaimTypes.Role, user.Role.ToString()),
             new(JwtRegisteredClaimNames.FamilyName, user.LastName),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };

@@ -33,6 +33,11 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.PasswordHash)
             .IsRequired();
 
+        builder.Property(x => x.Role)
+            .HasConversion<string>()
+            .HasDefaultValue(UserRole.User)
+            .IsRequired();
+
         builder.Property(x => x.CreatedAtUtc)
             .IsRequired();
 

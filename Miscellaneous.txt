@@ -38,6 +38,10 @@ dotnet user-secrets --project TeamTaskTracking.Api set "Jwt:SigningKey" "GENERAT
   "email": "john.doe@example.com",
   "password": "StrongPassword123!"
 }
+{
+  "email": "tele@tele.com",
+  "password": "StrongPassword123!"
+}
 
 
 
