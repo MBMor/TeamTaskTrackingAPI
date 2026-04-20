@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿
+using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using TeamTaskTracking.Application.Common.Exceptions;
@@ -10,7 +11,9 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
     private readonly ILogger<GlobalExceptionHandler> _logger;
     private readonly IHostEnvironment _environment;
 
-    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IHostEnvironment environment)
+    public GlobalExceptionHandler(
+        ILogger<GlobalExceptionHandler> logger,
+        IHostEnvironment environment)
     {
         _logger = logger;
         _environment = environment;
@@ -21,130 +24,154 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
-        if(exception is ValidationException validationException)
+        switch (exception)
         {
-            var errors = validationException.Errors
-                .GroupBy(x => x.PropertyName)
-                .ToDictionary(
-                    g => g.Key, 
-                    g => g.Select(x => x.ErrorMessage).ToArray());
+            case ValidationException validationException:
+                await HandleValidationExceptionAsync(httpContext, validationException, cancellationToken);
+                return true;
 
-            var validationProblemDetails = new ValidationProblemDetails(errors)
-            {
-                Title = "One or more validation errors occurred.",
-                Type = "https://httpstatuses.com/400",
-                Status = StatusCodes.Status400BadRequest,
-                Instance = httpContext.Request.Path
-            };
+            case InvalidCredentialsException:
+                await HandleProblemAsync(
+                    httpContext,
+                    statusCode: StatusCodes.Status401Unauthorized,
+                    title: "Authentication failed.",
+                    detail: _environment.IsDevelopment()
+                        ? exception.Message
+                        : "Invalid credentials.",
+                    type: "https://httpstatuses.com/401",
+                    errorCode: "AUTH_INVALID_CREDENTIALS",
+                    exception: exception,
+                    cancellationToken: cancellationToken);
+                return true;
 
-            validationProblemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+            case InvalidRefreshTokenException:
+                await HandleProblemAsync(
+                    httpContext,
+                    statusCode: StatusCodes.Status401Unauthorized,
+                    title: "Authentication failed.",
+                    detail: _environment.IsDevelopment()
+                        ? exception.Message
+                        : "Invalid refresh token.",
+                    type: "https://httpstatuses.com/401",
+                    errorCode: "AUTH_INVALID_REFRESH_TOKEN",
+                    exception: exception,
+                    cancellationToken: cancellationToken);
+                return true;
 
-            if (_environment.IsDevelopment())
-            {
-                validationProblemDetails.Extensions["exception"] = validationException.GetType().Name;
-            }
+            case DuplicateEmailException:
+                await HandleProblemAsync(
+                    httpContext,
+                    statusCode: StatusCodes.Status409Conflict,
+                    title: "Email already in use.",
+                    detail: _environment.IsDevelopment()
+                        ? exception.Message
+                        : "The email address is already registered.",
+                    type: "https://httpstatuses.com/409",
+                    errorCode: "AUTH_DUPLICATE_EMAIL",
+                    exception: exception,
+                    cancellationToken: cancellationToken);
+                return true;
 
-            httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
-            httpContext.Response.ContentType = "application/problem+json";
+            case InvalidOperationException:
+                await HandleProblemAsync(
+                    httpContext,
+                    statusCode: StatusCodes.Status409Conflict,
+                    title: "The request could not be completed.",
+                    detail: _environment.IsDevelopment()
+                        ? exception.Message
+                        : "The request conflicts with the current state of the resource.",
+                    type: "https://httpstatuses.com/409",
+                    errorCode: "CONFLICT",
+                    exception: exception,
+                    cancellationToken: cancellationToken);
+                return true;
 
-            await httpContext.Response.WriteAsJsonAsync(validationProblemDetails, cancellationToken);
+            default:
+                _logger.LogError(
+                    exception,
+                    "Unhandled exception occurred. TraceId: {TraceId}",
+                    httpContext.TraceIdentifier);
 
-            return true;
+                await HandleProblemAsync(
+                    httpContext,
+                    statusCode: StatusCodes.Status500InternalServerError,
+                    title: "An unexpected error occurred.",
+                    detail: _environment.IsDevelopment()
+                        ? exception.Message
+                        : "The server was unable to process the request.",
+                    type: "https://httpstatuses.com/500",
+                    errorCode: "INTERNAL_SERVER_ERROR",
+                    exception: exception,
+                    cancellationToken: cancellationToken);
+                return true;
         }
+    }
 
-        if (exception is InvalidCredentialsException)
+    private async Task HandleValidationExceptionAsync(
+        HttpContext httpContext,
+        ValidationException validationException,
+        CancellationToken cancellationToken)
+    {
+        var errors = validationException.Errors
+            .GroupBy(x => x.PropertyName)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(x => x.ErrorMessage).ToArray());
+
+        var problemDetails = new ValidationProblemDetails(errors)
         {
-            var problemDetails = new ProblemDetails
-            {
-                Title = "Authentication failed.",
-                Detail = _environment.IsDevelopment()
-                    ? exception.Message
-                    : "Invalid credentials.",
-                Status = StatusCodes.Status401Unauthorized,
-                Instance = httpContext.Request.Path
-            };
-
-            problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
-
-            httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
-            return true;
-        }
-
-        if (exception is InvalidOperationException)
-        {
-            var problemDetails = new ProblemDetails
-            {
-                Title = "The request could not be completed.",
-                Detail = _environment.IsDevelopment()
-                    ? exception.Message
-                    : "The request conflicts with the current state of the resource.",
-                Status = StatusCodes.Status409Conflict,
-                Instance = httpContext.Request.Path
-            };
-
-            problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
-
-            if (_environment.IsDevelopment())
-            {
-                problemDetails.Extensions["exception"] = exception.GetType().FullName;
-                problemDetails.Extensions["stackTrace"] = exception.StackTrace;
-            }
-
-            httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
-            await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
-            return true;
-        }
-
-        if (exception is DuplicateEmailException ex)
-        {
-            var problemDetails = new ProblemDetails
-            {
-                Title = "Email already in use.",
-                Detail = _environment.IsDevelopment() ? ex.Message : null,
-                Status = StatusCodes.Status409Conflict,
-                Instance = httpContext.Request.Path,
-                Type = "https://httpstatuses.com/409"
-            };
-
-            problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
-            problemDetails.Extensions["errorCode"] = "AUTH_DUPLICATE_EMAIL";
-
-            httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
-            httpContext.Response.ContentType = "application/problem+json";
-
-            await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
-            return true;
-        }
-
-        _logger.LogError(
-            exception,
-            "Unhandled exception occurred. TraceId: {TraceId}",
-            httpContext.TraceIdentifier);
-
-        var unexpectedProblem = new ProblemDetails
-        {
-            Title = "An unexpected error occurred.",
-            Detail = _environment.IsDevelopment()
-                ? exception.Message
-                : "The server was unable to process the request.",
-            Status = StatusCodes.Status500InternalServerError,
+            Title = "One or more validation errors occurred.",
+            Type = "https://httpstatuses.com/400",
+            Status = StatusCodes.Status400BadRequest,
             Instance = httpContext.Request.Path
         };
 
-        unexpectedProblem.Extensions["traceId"] = httpContext.TraceIdentifier;
+        problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+        problemDetails.Extensions["errorCode"] = "VALIDATION_ERROR";
 
         if (_environment.IsDevelopment())
         {
-            unexpectedProblem.Extensions["exception"] = exception.GetType().FullName;
-            unexpectedProblem.Extensions["stackTrace"] = exception.StackTrace;
+            problemDetails.Extensions["exception"] = validationException.GetType().FullName;
+            problemDetails.Extensions["stackTrace"] = validationException.StackTrace;
         }
 
-        httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
         httpContext.Response.ContentType = "application/problem+json";
 
-        await httpContext.Response.WriteAsJsonAsync(unexpectedProblem, cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+    }
 
-        return true;
+    private async Task HandleProblemAsync(
+        HttpContext httpContext,
+        int statusCode,
+        string title,
+        string? detail,
+        string type,
+        string errorCode,
+        Exception exception,
+        CancellationToken cancellationToken)
+    {
+        var problemDetails = new ProblemDetails
+        {
+            Title = title,
+            Detail = detail,
+            Type = type,
+            Status = statusCode,
+            Instance = httpContext.Request.Path
+        };
+
+        problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+        problemDetails.Extensions["errorCode"] = errorCode;
+
+        if (_environment.IsDevelopment())
+        {
+            problemDetails.Extensions["exception"] = exception.GetType().FullName;
+            problemDetails.Extensions["stackTrace"] = exception.StackTrace;
+        }
+
+        httpContext.Response.StatusCode = statusCode;
+        httpContext.Response.ContentType = "application/problem+json";
+
+        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
     }
 }

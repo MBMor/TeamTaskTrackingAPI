@@ -12,4 +12,5 @@ public sealed class JwtOptions
     public string Audience { get; init; } = string.Empty;
     public string SigningKey { get; init; } = string.Empty;
     public int AccessTokenExpirationMinutes { get; init; }
+    public int RefreshTokenExpirationDays { get; init; }
 }

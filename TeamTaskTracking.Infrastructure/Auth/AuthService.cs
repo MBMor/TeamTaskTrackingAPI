@@ -1,6 +1,8 @@
 ﻿using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Application.Common.Exceptions;
 using TeamTaskTracking.Domain.Users;
@@ -12,22 +14,28 @@ public sealed class AuthService : IAuthService
 {
     private readonly AppDbContext _dbContext;
     private readonly IValidator<LoginCommand> _loginValidator;
+    private readonly IValidator<RefreshTokenCommand> _refreshValidator;
+    private readonly IValidator<LogoutCommand> _logoutValidator;
     private readonly IPasswordHasher<User> _passwordHasher;
     private readonly ITokenService _tokenService;
 
     public AuthService(
-        AppDbContext dbContext, 
-        IValidator<LoginCommand> loginValidator, 
-        IPasswordHasher<User> passwordHasher, 
-        ITokenService tokenService)
+        AppDbContext dbContext,
+        IValidator<LoginCommand> loginValidator,
+        IPasswordHasher<User> passwordHasher,
+        ITokenService tokenService,
+        IValidator<RefreshTokenCommand> refreshValidator,
+        IValidator<LogoutCommand> logoutValidator)
     {
         _dbContext = dbContext;
         _loginValidator = loginValidator;
         _passwordHasher = passwordHasher;
         _tokenService = tokenService;
+        _refreshValidator = refreshValidator;
+        _logoutValidator = logoutValidator;
     }
 
-    public async Task<LoginResultDto> LoginAsync(LoginCommand command, CancellationToken cancellationToken)
+    public async Task<AuthTokensDto> LoginAsync(LoginCommand command, CancellationToken cancellationToken)
     {
         await _loginValidator.ValidateAndThrowAsync(command, cancellationToken);
 
@@ -55,6 +63,86 @@ public sealed class AuthService : IAuthService
         if (verificationResult == PasswordVerificationResult.Failed)
             throw new InvalidCredentialsException();
 
-        return _tokenService.CreateAccessToken(user);
+        var (accessToken, accessTokenExpiresAtUtc) = _tokenService.CreateAccessToken(user);
+        var (plainRefreshToken, refreshTokenHash, refreshTokenExpiresAtUtc) = _tokenService.CreateRefreshToken();
+
+        var refreshToken = new RefreshToken(
+            user.Id,
+            refreshTokenHash,
+            refreshTokenExpiresAtUtc);
+
+        _dbContext.RefreshTokens.Add(refreshToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return new AuthTokensDto(
+            accessToken,
+            accessTokenExpiresAtUtc,
+            plainRefreshToken,
+            refreshTokenExpiresAtUtc,
+            "Bearer");
+
+    }
+
+    public async Task<AuthTokensDto> RefreshAsync(RefreshTokenCommand command, CancellationToken cancellationToken)
+    {
+        await _refreshValidator.ValidateAndThrowAsync(command, cancellationToken);
+
+        var providedHash = ComputeSha256(command.RefreshToken);
+
+        var existingRefreshToken = await _dbContext.RefreshTokens
+            .SingleOrDefaultAsync(x => x.TokenHash == providedHash, cancellationToken);
+
+        if (existingRefreshToken is null || !existingRefreshToken.IsActive)
+            throw new InvalidRefreshTokenException();
+
+        var user = await _dbContext.Users
+            .SingleOrDefaultAsync(x => x.Id == existingRefreshToken.UserId, cancellationToken);
+
+        if (user is null)
+            throw new InvalidRefreshTokenException();
+
+        var (newAccessToken, accessTokenExpiresAtUtc) = _tokenService.CreateAccessToken(user);
+        var (newPlainRefreshToken, newRefreshTokenHash, refreshTokenExpiresAtUtc) = _tokenService.CreateRefreshToken();
+
+        existingRefreshToken.Revoke(newRefreshTokenHash);
+
+        var replacementRefreshToken = new RefreshToken(
+            user.Id,
+            newRefreshTokenHash,
+            refreshTokenExpiresAtUtc);
+
+        _dbContext.RefreshTokens.Add(replacementRefreshToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return new AuthTokensDto(
+            newAccessToken,
+            accessTokenExpiresAtUtc,
+            newPlainRefreshToken,
+            refreshTokenExpiresAtUtc,
+            "Bearer");
+    }
+
+    public async Task LogoutAsync(LogoutCommand command, CancellationToken cancellationToken)
+    {
+        await _logoutValidator.ValidateAndThrowAsync(command, cancellationToken);
+
+        var providedHash = ComputeSha256(command.RefreshToken);
+
+        var refreshToken = await _dbContext.RefreshTokens
+            .SingleOrDefaultAsync(x => x.TokenHash == providedHash, cancellationToken);
+
+        if (refreshToken is null)
+            return;
+
+        refreshToken.Revoke();
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private static string ComputeSha256(string value)
+    {
+        using var sha256 = SHA256.Create();
+        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(value));
+        return Convert.ToHexString(bytes);
     }
 }
+

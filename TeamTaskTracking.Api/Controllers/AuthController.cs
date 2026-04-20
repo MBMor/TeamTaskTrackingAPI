@@ -21,6 +21,7 @@ public sealed class AuthController : ControllerBase
     [HttpPost("register")]
     [ProducesResponseType(typeof(UserDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<UserDto>> Register(
         RegisterUserRequest request,
         CancellationToken cancellationToken)
@@ -40,7 +41,7 @@ public sealed class AuthController : ControllerBase
     [ProducesResponseType(typeof(LoginResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<LoginResultDto>> Login(
+    public async Task<ActionResult<AuthTokensDto>> Login(
     LoginRequest request,
     CancellationToken cancellationToken)
     {
@@ -51,6 +52,32 @@ public sealed class AuthController : ControllerBase
         var result = await _authService.LoginAsync(command, cancellationToken);
 
         return Ok(result);
+    }
+
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(AuthTokensDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<AuthTokensDto>> Refresh(
+       RefreshTokenRequest request,
+       CancellationToken cancellationToken)
+    {
+        var command = new RefreshTokenCommand(request.RefreshToken);
+        var result = await _authService.RefreshAsync(command, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Logout(
+        LogoutRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new LogoutCommand(request.RefreshToken);
+        await _authService.LogoutAsync(command, cancellationToken);
+
+        return NoContent();
     }
 
 }

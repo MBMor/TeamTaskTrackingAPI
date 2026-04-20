@@ -2,5 +2,7 @@
 
 public interface IAuthService
 {
-    Task<LoginResultDto> LoginAsync(LoginCommand command, CancellationToken cancellationToken);
+    Task<AuthTokensDto> LoginAsync(LoginCommand command, CancellationToken cancellationToken);
+    Task<AuthTokensDto> RefreshAsync(RefreshTokenCommand command, CancellationToken cancellationToken);
+    Task LogoutAsync(LogoutCommand command, CancellationToken cancellation);
 }
