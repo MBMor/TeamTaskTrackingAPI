@@ -4,9 +4,10 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Domain.Users;
 
-namespace TeamTaskTracking.Application.Auth;
+namespace TeamTaskTracking.Infrastructure.Auth;
 
 public sealed class TokenService : ITokenService
 {
@@ -25,9 +26,13 @@ public sealed class TokenService : ITokenService
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email.Value),
+            new(ClaimTypes.Email, user.Email.Value),
             new(JwtRegisteredClaimNames.GivenName, user.FirstName),
+            new(ClaimTypes.GivenName, user.FirstName),
             new(JwtRegisteredClaimNames.FamilyName, user.LastName),
+            new(ClaimTypes.Surname, user.LastName),
             new(ClaimTypes.Role, user.Role.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };

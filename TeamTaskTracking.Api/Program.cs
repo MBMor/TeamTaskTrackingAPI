@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
 using TeamTaskTracking.Api.Middleware;
 using TeamTaskTracking.Application;
 using TeamTaskTracking.Application.Auth;
+using TeamTaskTracking.Application.Auth.Requirements;
+using TeamTaskTracking.Infrastructure.Auth;
 using TeamTaskTracking.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -67,7 +70,17 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AuthorizationPolicies.AdminOnly, policy =>
+        policy.RequireRole("Admin"));
+
+    options.AddPolicy(AuthorizationPolicies.AdminOrSelf, policy =>
+        policy.RequireAuthenticatedUser()
+              .AddRequirements(new AdminOrSelfRequirement()));
+});
+
+builder.Services.AddScoped<IAuthorizationHandler, AdminOrSelfAuthorizationHandler>();
 
 var app = builder.Build();
 

@@ -23,6 +23,10 @@ public sealed class UserService : IUserService
         _registerValidator = registerValidator;
         _passwordHasher = passwordHasher;
     }
+
+
+
+
     public async Task<UserDto> RegisterAsync(RegisterUserCommand command, CancellationToken cancellationToken)
     {
         await _registerValidator.ValidateAndThrowAsync(command, cancellationToken);
@@ -54,4 +58,35 @@ public sealed class UserService : IUserService
             user.LastName,
             user.CreatedAtUtc);
     }
+
+    public async Task<UserDetailsDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await _dbContext.Users
+            .AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(x => new UserDetailsDto(
+                x.Id,
+                x.Email.Value,
+                x.FirstName,
+                x.LastName,
+                x.Role,
+                x.CreatedAtUtc))
+            .SingleOrDefaultAsync(cancellationToken);
+    }
+    public async Task<IReadOnlyCollection<UserDetailsDto>> GetAllAsync(CancellationToken cancellationToken)
+    {
+        return await _dbContext.Users
+            .AsNoTracking()
+            .OrderBy(x => x.LastName)
+            .ThenBy(x => x.FirstName)
+            .Select(x => new UserDetailsDto(
+                x.Id,
+                x.Email.Value,
+                x.FirstName,
+                x.LastName,
+                x.Role,
+                x.CreatedAtUtc))
+            .ToListAsync(cancellationToken);   
+    }
+
 }

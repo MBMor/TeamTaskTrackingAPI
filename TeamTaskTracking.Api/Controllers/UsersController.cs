@@ -1,40 +1,65 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TeamTaskTracking.Application.Auth.Requirements;
+using TeamTaskTracking.Application.Users;
+using TeamTaskTracking.Domain.Users;
 
 namespace TeamTaskTracking.Api.Controllers;
 
 [ApiController]
 [Route("api/users")]
+[Authorize]
 public sealed class UsersController : ControllerBase
 {
-    [Authorize]
-    [HttpGet("me")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public IActionResult Me()
+    private readonly IUserService _userService;
+    private readonly IAuthorizationService _authorizationService;
+
+    public UsersController(IUserService userService, IAuthorizationService authorizationService)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+        _userService = userService;
+        _authorizationService = authorizationService;
+    }
+
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(UserDetailsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<UserDetailsDto>> Me(CancellationToken cancellationToken)
+    {
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? User.FindFirstValue("sub");
 
-        var email = User.FindFirstValue(ClaimTypes.Email)
-            ?? User.FindFirstValue("email");
+        if (!Guid.TryParse(subject, out var userId))
+            return Unauthorized();
 
-        var firstName = User.FindFirstValue(ClaimTypes.GivenName)
-            ?? User.FindFirstValue("given_name");
+        var user = await _userService.GetByIdAsync(userId, cancellationToken);
+        if (user is null)
+            return Unauthorized();
 
-        var lastName = User.FindFirstValue(ClaimTypes.Surname)
-            ?? User.FindFirstValue("family_name");
-
-        var role = User.FindFirstValue(ClaimTypes.Role);
-
-        return Ok(new
-        {
-            Id = userId,
-            Email = email,
-            FirstName = firstName,
-            LastName = lastName,
-            Role = role
-        });
+        return Ok(user);
     }
+
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(UserDetailsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UserDetailsDto>> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var authorizationResult = await _authorizationService.AuthorizeAsync(
+            User,
+            id,
+            new AdminOrSelfRequirement());
+
+        if (!authorizationResult.Succeeded)
+            return Forbid();
+
+        var user = await _userService.GetByIdAsync(id, cancellationToken);
+
+        if (user is null)
+            return NotFound();
+
+        return Ok(user);    
+    }
+
 }
