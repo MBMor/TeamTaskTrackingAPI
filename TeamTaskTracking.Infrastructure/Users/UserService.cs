@@ -13,15 +13,18 @@ public sealed class UserService : IUserService
     private readonly AppDbContext _dbContext;
     private readonly IValidator<RegisterUserCommand> _registerValidator;
     private readonly IPasswordHasher<User> _passwordHasher;
+    private readonly IValidator<ChangeUserRoleCommand> _changeRoleValidator;
 
     public UserService(
-        AppDbContext dbContext, 
-        IValidator<RegisterUserCommand> 
-        registerValidator, IPasswordHasher<User> passwordHasher)
+        AppDbContext dbContext,
+        IValidator<RegisterUserCommand> registerValidator, 
+        IPasswordHasher<User> passwordHasher, 
+        IValidator<ChangeUserRoleCommand> changeRoleValidator)
     {
         _dbContext = dbContext;
         _registerValidator = registerValidator;
         _passwordHasher = passwordHasher;
+        _changeRoleValidator = changeRoleValidator;
     }
 
 
@@ -89,4 +92,18 @@ public sealed class UserService : IUserService
             .ToListAsync(cancellationToken);   
     }
 
+    public async Task<bool> ChangeRoleAsync(Guid id, ChangeUserRoleCommand command, CancellationToken cancellationToken)
+    {
+        await _changeRoleValidator.ValidateAndThrowAsync(command, cancellationToken);
+
+        var user = await _dbContext.Users.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+        if (user is null)
+            return false;
+
+        user.ChangeRole(command.Role);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
 }

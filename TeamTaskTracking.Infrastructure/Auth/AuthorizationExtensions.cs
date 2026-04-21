@@ -1,0 +1,31 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.DependencyInjection;
+using TeamTaskTracking.Application.Auth;
+using TeamTaskTracking.Application.Auth.Requirements;
+
+namespace TeamTaskTracking.Infrastructure.Auth;
+
+public static class AuthorizationExtensions
+{
+    public static IServiceCollection AddPermissionPolicies(this IServiceCollection services)
+    {
+
+        services.AddAuthorizationBuilder()
+            .AddPolicy(AuthorizationPolicies.AdminOnly, policy =>
+                policy.RequireRole("Admin"))
+            .AddPolicy("UsersReadAll", policy =>
+                policy.RequireAuthenticatedUser()
+                    .AddRequirements(new PermissionRequirement(Permissions.UsersReadAll)))
+            .AddPolicy("UsersManageRoles", policy =>
+                policy.RequireAuthenticatedUser()
+                    .AddRequirements(new PermissionRequirement(Permissions.UsersManageRoles)))
+            .AddPolicy(AuthorizationPolicies.AdminOrSelf, policy =>
+                policy.RequireAuthenticatedUser()
+                    .AddRequirements(new AdminOrSelfRequirement()));
+
+        services.AddScoped<IAuthorizationHandler, AdminOrSelfAuthorizationHandler>();
+        services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+
+        return services;
+    }
+}

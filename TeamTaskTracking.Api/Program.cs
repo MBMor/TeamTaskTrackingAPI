@@ -80,7 +80,7 @@ builder.Services.AddAuthorization(options =>
               .AddRequirements(new AdminOrSelfRequirement()));
 });
 
-builder.Services.AddScoped<IAuthorizationHandler, AdminOrSelfAuthorizationHandler>();
+builder.Services.AddPermissionPolicies();
 
 var app = builder.Build();
 

@@ -37,6 +37,9 @@ public sealed class TokenService : ITokenService
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
+        var permissions = PermissionProvider.GetPermissions(user.Role);
+        claims.AddRange(permissions.Select(permission => new Claim("permission", permission)));
+
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_jwtOptions.SigningKey));
 

@@ -61,4 +61,9 @@ public sealed class User
         LastName = lastName.Trim();
     }
 
+    public void ChangeRole(UserRole role)
+    {
+        Role = role;
+    }
+
 }
