@@ -15,6 +15,11 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
 
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.OwnerUserId)
+            .IsRequired();
+
+        builder.HasIndex(x => x.OwnerUserId);
+
         builder.Property(x => x.Name)
             .IsRequired()
             .HasMaxLength(150);

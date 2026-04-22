@@ -1,6 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using TeamTaskTracking.Api.Contracts.Projects;
 using TeamTaskTracking.Application.Projects;
+using TeamTaskTracking.Infrastructure.Persistence;
 
 
 namespace TeamTaskTracking.Api.Controllers;
@@ -10,66 +14,124 @@ namespace TeamTaskTracking.Api.Controllers;
 public sealed class ProjectsController : ControllerBase
 {
     private readonly IProjectService _projectService;
+    private readonly AppDbContext _dbContext;
+    private readonly IAuthorizationService _authorizationService;
 
-    public ProjectsController(IProjectService projectService)
+    public ProjectsController(
+        IProjectService projectService, 
+        AppDbContext dbContext, 
+        IAuthorizationService authorizationService)
     {
         _projectService = projectService;
+        _dbContext = dbContext;
+        _authorizationService = authorizationService;
     }
 
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyCollection<ProjectDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<IReadOnlyCollection<ProjectDto>>> GetAll(CancellationToken cancellationToken)
     {
-        var result = await _projectService.GetAllAsync(cancellationToken);
-        return Ok(result);
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub");
+
+        var role = User.FindFirstValue(ClaimTypes.Role);
+
+        if (!Guid.TryParse(userIdClaim, out var currentUserId))
+            return Unauthorized();
+
+        var allProjects = await _projectService.GetAllAsync(cancellationToken);
+
+        if (string.Equals(role, "Admin", StringComparison.Ordinal))
+            return Ok(allProjects);
+
+        var ownProjects = allProjects
+            .Where(x => x.OwnerUserId == currentUserId)
+            .ToArray();
+
+        return Ok(ownProjects);
     }
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(ProjectDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProjectDto>> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _projectService.GetByIdAsync(id, cancellationToken);
-
-        if (result is null) 
+        var project = await _dbContext.Projects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (project is null)
             return NotFound();
 
-        return Ok(result);
+        var authorizationResult = await _authorizationService.AuthorizeAsync(
+            User,
+            project,
+            ProjectOperations.Read);
 
+        if (!authorizationResult.Succeeded)
+            return Forbid();
+
+        var result = await _projectService.GetByIdAsync(id, cancellationToken);
+        return Ok(result);
     }
 
     [HttpPost]
     [ProducesResponseType(typeof(ProjectDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ProjectDto>> Create(
-        CreateProjectRequest request, 
+        CreateProjectRequest request,
         CancellationToken cancellationToken)
     {
-        var command = new CreateProjectCommand(request.Name, request.Description);
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub");
+
+        if (!Guid.TryParse(subject, out var currentUserId))
+            return Unauthorized();
+
+        var command = new CreateProjectCommand(
+            currentUserId,
+            request.Name,
+            request.Description);
 
         var result = await _projectService.CreateAsync(command, cancellationToken);
 
         return CreatedAtAction(
-            nameof(GetById), 
-            new { id = result.Id }, 
+            nameof(GetById),
+            new { id = result.Id },
             result);
-
     }
 
     [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(
-        Guid id, 
-        UpdateProjectRequest request, 
+        Guid id,
+        UpdateProjectRequest request,
         CancellationToken cancellationToken)
     {
-        var command = new UpdateProjectCommand(request.Name, request.Description);
+        var project = await _dbContext.Projects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (project is null)
+            return NotFound();
 
-        var isUpdated = await _projectService.UpdateAsync(id, command, cancellationToken);
+        var authorizationResult = await _authorizationService.AuthorizeAsync(
+            User,
+            project,
+            ProjectOperations.Update);
 
-        if (!isUpdated)
+        if (!authorizationResult.Succeeded)
+            return Forbid();
+
+        var command = new UpdateProjectCommand(
+            request.Name,
+            request.Description);
+
+        var updated = await _projectService.UpdateAsync(id, command, cancellationToken);
+
+        if (!updated)
             return NotFound();
 
         return NoContent();
@@ -77,15 +139,28 @@ public sealed class ProjectsController : ControllerBase
 
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var isDeleted = await _projectService.DeleteAsync(id, cancellationToken);
+        var project = await _dbContext.Projects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (project is null)
+            return NotFound();
 
-        if (!isDeleted)
+        var authorizationResult = await _authorizationService.AuthorizeAsync(
+            User,
+            project,
+            ProjectOperations.Delete);
+
+        if (!authorizationResult.Succeeded)
+            return Forbid();
+
+        var deleted = await _projectService.DeleteAsync(id, cancellationToken);
+
+        if (!deleted)
             return NotFound();
 
         return NoContent();
     }
-
 }

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Application.Auth.Requirements;
+using TeamTaskTracking.Infrastructure.Projects;
 
 namespace TeamTaskTracking.Infrastructure.Auth;
 
@@ -25,6 +26,7 @@ public static class AuthorizationExtensions
 
         services.AddScoped<IAuthorizationHandler, AdminOrSelfAuthorizationHandler>();
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+        services.AddScoped<IAuthorizationHandler, ProjectAuthorizationHandler>();
 
         return services;
     }

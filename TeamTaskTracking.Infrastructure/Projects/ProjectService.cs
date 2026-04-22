@@ -29,6 +29,7 @@ internal class ProjectService : IProjectService
             .OrderBy(x => x.Name)
             .Select(x => new ProjectDto(
                 x.Id,
+                x.OwnerUserId,
                 x.Name,
                 x.Description,
                 x.CreatedAtUtc))
@@ -42,6 +43,7 @@ internal class ProjectService : IProjectService
             .Where(x => x.Id == id)
             .Select(x => new ProjectDto(
                 x.Id,
+                x.OwnerUserId,
                 x.Name,
                 x.Description,
                 x.CreatedAtUtc))
@@ -53,13 +55,17 @@ internal class ProjectService : IProjectService
     {
         await _createValidator.ValidateAndThrowAsync(command, cancellationToken);
 
-        var project = new Project(command.Name, command.Description);
+        var project = new Project(
+            command.OwnerUserId ,
+            command.Name, 
+            command.Description);
 
         _dbContext.Projects.Add(project);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return new ProjectDto(
             project.Id,
+            project.OwnerUserId,
             project.Name,
             project.Description,
             project.CreatedAtUtc);

@@ -9,6 +9,9 @@ public sealed class CreateProjectCommandValidator : AbstractValidator<CreateProj
 {
     public CreateProjectCommandValidator()
     {
+        RuleFor(x => x.OwnerUserId)
+            .NotEmpty();
+
         RuleFor(x => x.Name)
             .NotEmpty()
             .MaximumLength(150);

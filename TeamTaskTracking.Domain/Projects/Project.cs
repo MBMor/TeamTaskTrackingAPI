@@ -7,6 +7,7 @@ namespace TeamTaskTracking.Domain.Projects;
 public sealed class Project
 {
     public Guid Id { get; private set; }
+    public Guid OwnerUserId { get; private set;  }
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
@@ -18,9 +19,10 @@ public sealed class Project
     {
     }
 
-    public Project(string name, string? description)
+    public Project(Guid ownerUserId, string name, string? description)
     {
         Id = Guid.NewGuid();
+        OwnerUserId = ownerUserId;
         SetName(name);
         SetDescription(description);
         CreatedAtUtc = DateTime.UtcNow;
