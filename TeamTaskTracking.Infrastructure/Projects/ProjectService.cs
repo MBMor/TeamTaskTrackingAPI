@@ -36,6 +36,29 @@ internal class ProjectService : IProjectService
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyCollection<ProjectDto>> GetAllForUserAsync(
+    Guid userId,
+    bool isAdmin,
+    CancellationToken cancellationToken)
+    {
+        var query = _dbContext.Projects.AsNoTracking();
+
+        if (!isAdmin)
+        {
+            query = query.Where(x => x.OwnerUserId == userId); 
+        }
+
+        return await query
+            .OrderBy(x => x.Name)
+            .Select(x => new ProjectDto(
+                x.Id,
+                x.OwnerUserId,
+                x.Name,
+                x.Description,
+                x.CreatedAtUtc))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<ProjectDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         return await _dbContext.Projects
@@ -50,6 +73,11 @@ internal class ProjectService : IProjectService
             .SingleOrDefaultAsync(cancellationToken);
 
 
+    }
+
+    public async Task<Project?> GetProjectForAuthorizationAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await _dbContext.Projects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
     public async Task<ProjectDto> CreateAsync(CreateProjectCommand command, CancellationToken cancellationToken)
     {

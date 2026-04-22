@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using TeamTaskTracking.Api.Contracts.Projects;
 using TeamTaskTracking.Application.Projects;
+using TeamTaskTracking.Domain.Users;
 using TeamTaskTracking.Infrastructure.Persistence;
 
 
@@ -14,16 +15,13 @@ namespace TeamTaskTracking.Api.Controllers;
 public sealed class ProjectsController : ControllerBase
 {
     private readonly IProjectService _projectService;
-    private readonly AppDbContext _dbContext;
     private readonly IAuthorizationService _authorizationService;
 
     public ProjectsController(
         IProjectService projectService, 
-        AppDbContext dbContext, 
         IAuthorizationService authorizationService)
     {
         _projectService = projectService;
-        _dbContext = dbContext;
         _authorizationService = authorizationService;
     }
 
@@ -40,16 +38,10 @@ public sealed class ProjectsController : ControllerBase
         if (!Guid.TryParse(userIdClaim, out var currentUserId))
             return Unauthorized();
 
-        var allProjects = await _projectService.GetAllAsync(cancellationToken);
+        var isAdmin = string.Equals(role, UserRole.Admin.ToString(), StringComparison.Ordinal);
 
-        if (string.Equals(role, "Admin", StringComparison.Ordinal))
-            return Ok(allProjects);
-
-        var ownProjects = allProjects
-            .Where(x => x.OwnerUserId == currentUserId)
-            .ToArray();
-
-        return Ok(ownProjects);
+        var result = await _projectService.GetAllForUserAsync(currentUserId, isAdmin, cancellationToken);
+        return Ok(result);
     }
 
     [HttpGet("{id:guid}")]
@@ -59,7 +51,7 @@ public sealed class ProjectsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProjectDto>> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var project = await _dbContext.Projects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var project = await _projectService.GetProjectForAuthorizationAsync(id, cancellationToken);
         if (project is null)
             return NotFound();
 
@@ -113,7 +105,7 @@ public sealed class ProjectsController : ControllerBase
         UpdateProjectRequest request,
         CancellationToken cancellationToken)
     {
-        var project = await _dbContext.Projects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var project = await _projectService.GetProjectForAuthorizationAsync(id, cancellationToken);
         if (project is null)
             return NotFound();
 
@@ -144,7 +136,7 @@ public sealed class ProjectsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var project = await _dbContext.Projects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var project = await _projectService.GetProjectForAuthorizationAsync(id, cancellationToken);
         if (project is null)
             return NotFound();
 
