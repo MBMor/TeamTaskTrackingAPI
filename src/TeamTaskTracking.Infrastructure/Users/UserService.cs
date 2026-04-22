@@ -36,9 +36,11 @@ public sealed class UserService : IUserService
 
         var normalizedEmail = Email.Create(command.Email);
 
-        var emailExists = await _dbContext.Users
+        var existingEmails = await _dbContext.Users
             .AsNoTracking()
-            .AnyAsync(x => x.Email == normalizedEmail, cancellationToken);
+            .ToListAsync(cancellationToken);
+
+        var emailExists = existingEmails.Any(x => x.Email.Value == normalizedEmail.Value);
 
         if (emailExists)
             throw new DuplicateEmailException(command.Email);
@@ -56,7 +58,7 @@ public sealed class UserService : IUserService
 
         return new UserDto(
             user.Id,
-            user.Email,
+            user.Email.Value,
             user.FirstName,
             user.LastName,
             user.CreatedAtUtc);
@@ -64,24 +66,30 @@ public sealed class UserService : IUserService
 
     public async Task<UserDetailsDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await _dbContext.Users
+        var user = await _dbContext.Users
             .AsNoTracking()
-            .Where(x => x.Id == id)
-            .Select(x => new UserDetailsDto(
-                x.Id,
-                x.Email.Value,
-                x.FirstName,
-                x.LastName,
-                x.Role,
-                x.CreatedAtUtc))
-            .SingleOrDefaultAsync(cancellationToken);
+            .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+        if (user is null)
+            return null;
+
+        return new UserDetailsDto(
+            user.Id,
+            user.Email.Value,
+            user.FirstName,
+            user.LastName,
+            user.Role,
+            user.CreatedAtUtc);
     }
     public async Task<IReadOnlyCollection<UserDetailsDto>> GetAllAsync(CancellationToken cancellationToken)
     {
-        return await _dbContext.Users
+        var users = await _dbContext.Users
             .AsNoTracking()
             .OrderBy(x => x.LastName)
             .ThenBy(x => x.FirstName)
+            .ToListAsync(cancellationToken);
+
+        return users
             .Select(x => new UserDetailsDto(
                 x.Id,
                 x.Email.Value,
@@ -89,7 +97,7 @@ public sealed class UserService : IUserService
                 x.LastName,
                 x.Role,
                 x.CreatedAtUtc))
-            .ToListAsync(cancellationToken);   
+            .ToList();
     }
 
     public async Task<bool> ChangeRoleAsync(Guid id, ChangeUserRoleCommand command, CancellationToken cancellationToken)

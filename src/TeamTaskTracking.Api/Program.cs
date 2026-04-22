@@ -7,8 +7,8 @@ using TeamTaskTracking.Api.Middleware;
 using TeamTaskTracking.Application;
 using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Application.Auth.Requirements;
-using TeamTaskTracking.Infrastructure.Auth;
 using TeamTaskTracking.Infrastructure;
+using TeamTaskTracking.Infrastructure.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,15 +39,29 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-var jwtOptions = builder.Configuration
-    .GetSection(JwtOptions.SectionName)
-    .Get<JwtOptions>()
-    ?? throw new InvalidOperationException("Jwt configuration is missing.");
+builder.Services
+    .AddOptions<JwtOptions>()
+    .Bind(builder.Configuration.GetRequiredSection(JwtOptions.SectionName))
+    .Validate(o => !string.IsNullOrWhiteSpace(o.Issuer), "Jwt:Issuer is required.")
+    .Validate(o => !string.IsNullOrWhiteSpace(o.Audience), "Jwt:Audience is required.")
+    .Validate(o => !string.IsNullOrWhiteSpace(o.SigningKey) && o.SigningKey.Length >= 32,
+        "Jwt:SigningKey must be at least 32 characters long.")
+    .Validate(o => o.AccessTokenExpirationMinutes > 0,
+        "Jwt:AccessTokenExpirationMinutes must be greater than zero.")
+    .Validate(o => o.RefreshTokenExpirationDays > 0,
+        "Jwt:RefreshTokenExpirationDays must be greater than zero.")
+    .ValidateOnStart();
 
-if (string.IsNullOrWhiteSpace(jwtOptions.SigningKey) || jwtOptions.SigningKey.Length < 32)
-{
-    throw new InvalidOperationException("Jwt:SigningKey must be at least 32 characters long.");
-}
+var jwtSection = builder.Configuration.GetRequiredSection(JwtOptions.SectionName);
+
+var issuer = jwtSection["Issuer"]
+    ?? throw new InvalidOperationException("Jwt:Issuer is missing.");
+
+var audience = jwtSection["Audience"]
+    ?? throw new InvalidOperationException("Jwt:Audience is missing.");
+
+var signingKey = jwtSection["SigningKey"]
+    ?? throw new InvalidOperationException("Jwt:SigningKey is missing.");
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -56,29 +70,26 @@ builder.Services
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuer = jwtOptions.Issuer,
+            ValidIssuer = issuer,
 
             ValidateAudience = true,
-            ValidAudience = jwtOptions.Audience,
+            ValidAudience = audience,
 
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+                Encoding.UTF8.GetBytes(signingKey)),
 
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
     });
 
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy(AuthorizationPolicies.AdminOnly, policy =>
-        policy.RequireRole("Admin"));
-
-    options.AddPolicy(AuthorizationPolicies.AdminOrSelf, policy =>
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(AuthorizationPolicies.AdminOnly, policy =>
+        policy.RequireRole("Admin"))
+    .AddPolicy(AuthorizationPolicies.AdminOrSelf, policy =>
         policy.RequireAuthenticatedUser()
               .AddRequirements(new AdminOrSelfRequirement()));
-});
 
 builder.Services.AddPermissionPolicies();
 
@@ -99,3 +110,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program
+{
+}

@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>02e09403-a6f7-495f-b4be-5a2ee608cf85</UserSecretsId>
+	
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,5 +25,11 @@
     <ProjectReference Include="..\TeamTaskTracking.Application\TeamTaskTracking.Application.csproj" />
     <ProjectReference Include="..\TeamTaskTracking.Infrastructure\TeamTaskTracking.Infrastructure.csproj" />
   </ItemGroup>
+
+	<ItemGroup>
+		<None Update="xunit.runner.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 
 </Project>

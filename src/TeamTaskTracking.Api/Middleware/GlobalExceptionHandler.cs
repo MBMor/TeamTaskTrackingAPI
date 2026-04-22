@@ -169,6 +169,13 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             problemDetails.Extensions["stackTrace"] = exception.StackTrace;
         }
 
+        if (_environment.IsEnvironment("Testing"))
+        {
+            problemDetails.Extensions["exceptionType"] = exception.GetType().FullName;
+            problemDetails.Extensions["exceptionMessage"] = exception.Message;
+            problemDetails.Extensions["stackTrace"] = exception.StackTrace;
+        }
+
         httpContext.Response.StatusCode = statusCode;
         httpContext.Response.ContentType = "application/problem+json";
 

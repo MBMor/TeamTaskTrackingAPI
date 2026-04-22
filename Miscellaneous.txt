@@ -26,6 +26,9 @@ docker run --name postgres -d -p 5432:5432 -e POSTGRES_PASSWORD=xxxxxxx -v postg
 dotnet ef migrations add AddUsers --project TeamTaskTracking.Infrastructure --startup-project TeamTaskTracking.Api
 dotnet ef database update --project TeamTaskTracking.Infrastructure --startup-project TeamTaskTracking.Api
 
+dotnet ef migrations add AddProjectOwner --project src/TeamTaskTracking.Infrastructure --startup-project src/TeamTaskTracking.Api
+dotnet ef database update --project src/TeamTaskTracking.Infrastructure --startup-project src/TeamTaskTracking.Api
+
 
 Powershell-
 [Convert]::ToBase64String((1..64 | ForEach-Object {Get-Random -Max 256}))
