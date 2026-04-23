@@ -11,24 +11,24 @@ namespace TeamTaskTracking.Infrastructure.Users;
 public sealed class UserService : IUserService
 {
     private readonly AppDbContext _dbContext;
+    private readonly IUserReadStore _userReadStore;
     private readonly IValidator<RegisterUserCommand> _registerValidator;
     private readonly IPasswordHasher<User> _passwordHasher;
     private readonly IValidator<ChangeUserRoleCommand> _changeRoleValidator;
 
     public UserService(
         AppDbContext dbContext,
-        IValidator<RegisterUserCommand> registerValidator, 
-        IPasswordHasher<User> passwordHasher, 
+        IUserReadStore userReadStore,
+        IValidator<RegisterUserCommand> registerValidator,
+        IPasswordHasher<User> passwordHasher,
         IValidator<ChangeUserRoleCommand> changeRoleValidator)
     {
         _dbContext = dbContext;
+        _userReadStore = userReadStore;
         _registerValidator = registerValidator;
         _passwordHasher = passwordHasher;
         _changeRoleValidator = changeRoleValidator;
     }
-
-
-
 
     public async Task<UserDto> RegisterAsync(RegisterUserCommand command, CancellationToken cancellationToken)
     {
@@ -36,12 +36,7 @@ public sealed class UserService : IUserService
 
         var normalizedEmail = Email.Create(command.Email);
 
-        var existingEmails = await _dbContext.Users
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
-
-        var emailExists = existingEmails.Any(x => x.Email.Value == normalizedEmail.Value);
-
+        var emailExists = await _userReadStore.ExistsByEmailAsync(normalizedEmail, cancellationToken);
         if (emailExists)
             throw new DuplicateEmailException(command.Email);
 
@@ -64,41 +59,11 @@ public sealed class UserService : IUserService
             user.CreatedAtUtc);
     }
 
-    public async Task<UserDetailsDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
-    {
-        var user = await _dbContext.Users
-            .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+    public Task<UserDetailsDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+        => _userReadStore.GetUserDetailsByIdAsync(id, cancellationToken);
 
-        if (user is null)
-            return null;
-
-        return new UserDetailsDto(
-            user.Id,
-            user.Email.Value,
-            user.FirstName,
-            user.LastName,
-            user.Role,
-            user.CreatedAtUtc);
-    }
-    public async Task<IReadOnlyCollection<UserDetailsDto>> GetAllAsync(CancellationToken cancellationToken)
-    {
-        var users = await _dbContext.Users
-            .AsNoTracking()
-            .OrderBy(x => x.LastName)
-            .ThenBy(x => x.FirstName)
-            .ToListAsync(cancellationToken);
-
-        return users
-            .Select(x => new UserDetailsDto(
-                x.Id,
-                x.Email.Value,
-                x.FirstName,
-                x.LastName,
-                x.Role,
-                x.CreatedAtUtc))
-            .ToList();
-    }
+    public Task<IReadOnlyCollection<UserDetailsDto>> GetAllAsync(CancellationToken cancellationToken)
+        => _userReadStore.GetAllUserDetailsAsync(cancellationToken);
 
     public async Task<bool> ChangeRoleAsync(Guid id, ChangeUserRoleCommand command, CancellationToken cancellationToken)
     {

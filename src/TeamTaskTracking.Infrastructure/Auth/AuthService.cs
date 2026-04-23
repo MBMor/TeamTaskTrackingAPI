@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Application.Common.Exceptions;
+using TeamTaskTracking.Application.Users;
 using TeamTaskTracking.Domain.Users;
 using TeamTaskTracking.Infrastructure.Persistence;
 
@@ -13,6 +14,7 @@ namespace TeamTaskTracking.Infrastructure.Auth;
 public sealed class AuthService : IAuthService
 {
     private readonly AppDbContext _dbContext;
+    private readonly IUserReadStore _userReadStore;
     private readonly IValidator<LoginCommand> _loginValidator;
     private readonly IValidator<RefreshTokenCommand> _refreshValidator;
     private readonly IValidator<LogoutCommand> _logoutValidator;
@@ -25,7 +27,8 @@ public sealed class AuthService : IAuthService
         IPasswordHasher<User> passwordHasher,
         ITokenService tokenService,
         IValidator<RefreshTokenCommand> refreshValidator,
-        IValidator<LogoutCommand> logoutValidator)
+        IValidator<LogoutCommand> logoutValidator,
+        IUserReadStore userReadStore)
     {
         _dbContext = dbContext;
         _loginValidator = loginValidator;
@@ -33,6 +36,7 @@ public sealed class AuthService : IAuthService
         _tokenService = tokenService;
         _refreshValidator = refreshValidator;
         _logoutValidator = logoutValidator;
+        _userReadStore = userReadStore;
     }
 
     public async Task<AuthTokensDto> LoginAsync(LoginCommand command, CancellationToken cancellationToken)
@@ -50,7 +54,7 @@ public sealed class AuthService : IAuthService
             throw new InvalidCredentialsException();
         }
 
-        var user = await _dbContext.Users.SingleOrDefaultAsync(x => x.Email == email, cancellationToken);
+        var user = await _userReadStore.GetByEmailAsync(email, cancellationToken);
 
         if (user is null)
             throw new InvalidCredentialsException();
