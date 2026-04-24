@@ -8,21 +8,21 @@ namespace TeamTaskTracking.Infrastructure.Auth;
 
 public static class AuthorizationExtensions
 {
-    public static IServiceCollection AddPermissionPolicies(this IServiceCollection services)
+    public static IServiceCollection AddApplicationAuthorization(this IServiceCollection services)
     {
 
         services.AddAuthorizationBuilder()
             .AddPolicy(AuthorizationPolicies.AdminOnly, policy =>
                 policy.RequireRole("Admin"))
-            .AddPolicy("UsersReadAll", policy =>
-                policy.RequireAuthenticatedUser()
-                    .AddRequirements(new PermissionRequirement(Permissions.UsersReadAll)))
-            .AddPolicy("UsersManageRoles", policy =>
-                policy.RequireAuthenticatedUser()
-                    .AddRequirements(new PermissionRequirement(Permissions.UsersManageRoles)))
             .AddPolicy(AuthorizationPolicies.AdminOrSelf, policy =>
                 policy.RequireAuthenticatedUser()
-                    .AddRequirements(new AdminOrSelfRequirement()));
+                    .AddRequirements(new AdminOrSelfRequirement()))
+            .AddPolicy(AuthorizationPolicies.UsersReadAll, policy =>
+                policy.RequireAuthenticatedUser()
+                    .AddRequirements(new PermissionRequirement(Permissions.UsersReadAll)))
+            .AddPolicy(AuthorizationPolicies.UsersManageRoles, policy =>
+                policy.RequireAuthenticatedUser()
+                    .AddRequirements(new PermissionRequirement(Permissions.UsersManageRoles)));
 
         services.AddScoped<IAuthorizationHandler, AdminOrSelfAuthorizationHandler>();
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
