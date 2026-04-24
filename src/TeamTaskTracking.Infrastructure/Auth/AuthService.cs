@@ -70,8 +70,11 @@ public sealed class AuthService : IAuthService
         var (accessToken, accessTokenExpiresAtUtc) = _tokenService.CreateAccessToken(user);
         var (plainRefreshToken, refreshTokenHash, refreshTokenExpiresAtUtc) = _tokenService.CreateRefreshToken();
 
+        var tokenFamilyId = Guid.NewGuid();
+
         var refreshToken = new RefreshToken(
             user.Id,
+            tokenFamilyId,
             refreshTokenHash,
             refreshTokenExpiresAtUtc);
 
@@ -96,8 +99,16 @@ public sealed class AuthService : IAuthService
         var existingRefreshToken = await _dbContext.RefreshTokens
             .SingleOrDefaultAsync(x => x.TokenHash == providedHash, cancellationToken);
 
-        if (existingRefreshToken is null || !existingRefreshToken.IsActive)
+        if (existingRefreshToken is null)
             throw new InvalidRefreshTokenException();
+
+        if (!existingRefreshToken.IsActive)
+        {
+            await RevokeTokenFamilyAsync(existingRefreshToken.TokenFamilyId, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            throw new InvalidRefreshTokenException();
+        }
 
         var user = await _dbContext.Users
             .SingleOrDefaultAsync(x => x.Id == existingRefreshToken.UserId, cancellationToken);
@@ -112,6 +123,7 @@ public sealed class AuthService : IAuthService
 
         var replacementRefreshToken = new RefreshToken(
             user.Id,
+            existingRefreshToken.TokenFamilyId,
             newRefreshTokenHash,
             refreshTokenExpiresAtUtc);
 
@@ -124,6 +136,18 @@ public sealed class AuthService : IAuthService
             newPlainRefreshToken,
             refreshTokenExpiresAtUtc,
             "Bearer");
+    }
+
+    private async Task RevokeTokenFamilyAsync(Guid tokenFamilyId, CancellationToken cancellationToken)
+    {
+        var tokenFamily = await _dbContext.RefreshTokens
+            .Where(x => x.TokenFamilyId == tokenFamilyId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var token in tokenFamily)
+        {
+            token.MarkCompromised();
+        }
     }
 
     public async Task LogoutAsync(LogoutCommand command, CancellationToken cancellationToken)

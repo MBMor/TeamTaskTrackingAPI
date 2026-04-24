@@ -15,9 +15,17 @@ internal class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken
         builder.Property(x => x.Id)
             .IsRequired();
 
+        builder.Property(x => x.TokenFamilyId)
+            .IsRequired();
+
+        builder.HasIndex(x => x.TokenFamilyId);
+
         builder.Property(x => x.TokenHash)
             .HasMaxLength(200)
             .IsRequired();
+
+        builder.HasIndex(x => x.TokenHash)
+            .IsUnique();
 
         builder.Property(x => x.ExpiresAtUtc)
             .IsRequired();
@@ -30,8 +38,8 @@ internal class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken
         builder.Property(x => x.ReplacedByTokenHash)
             .HasMaxLength(200);
 
-        builder.HasIndex(x => x.TokenHash)
-            .IsUnique();
+        builder.Property(x => x.IsCompromised)
+            .IsRequired();
 
         builder.HasOne<User>()
             .WithMany(x => x.RefreshTokens)
