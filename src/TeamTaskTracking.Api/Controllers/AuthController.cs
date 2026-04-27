@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using TeamTaskTracking.Api.Contracts.Auth;
 using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Application.Users;
+using TeamTaskTracking.Domain.Users;
 
 namespace TeamTaskTracking.Api.Controllers;
 
@@ -35,6 +37,14 @@ public sealed class AuthController : ControllerBase
         var result = await _userService.RegisterAsync(command, cancellationToken);
 
         return StatusCode(StatusCodes.Status201Created, result);
+
+        //return CreatedAtAction(
+        //    nameof(UsersController.GetById),
+        //    "Users",
+        //    new { id = result.Id },
+        //    result);
+
+        //return Created("/api/users/me", result);
     }
 
     [HttpPost("login")]
