@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -14,23 +15,17 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     private DbConnection? _connection;
 
-    public CustomWebApplicationFactory()
-    {
-        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
-        Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Testing");
-
-        Environment.SetEnvironmentVariable("Jwt__Issuer", "TeamTaskTracking.Api.Tests");
-        Environment.SetEnvironmentVariable("Jwt__Audience", "TeamTaskTracking.Api.Tests.Client");
-        Environment.SetEnvironmentVariable("Jwt__SigningKey", "this-is-a-test-signing-key-with-32-plus-chars");
-        Environment.SetEnvironmentVariable("Jwt__AccessTokenExpirationMinutes", "60");
-        Environment.SetEnvironmentVariable("Jwt__RefreshTokenExpirationDays", "30");
-    }
-
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
 
-        builder.ConfigureServices(services =>
+        builder.UseSetting("Jwt:Issuer", "TeamTaskTracking.Api.Tests");
+        builder.UseSetting("Jwt:Audience", "TeamTaskTracking.Api.Tests.Client");
+        builder.UseSetting("Jwt:SigningKey", "this-is-a-test-signing-key-with-32-plus-chars");
+        builder.UseSetting("Jwt:AccessTokenExpirationMinutes", "15");
+        builder.UseSetting("Jwt:RefreshTokenExpirationDays", "30");
+
+        builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<DbContextOptions<AppDbContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<AppDbContext>>();
@@ -64,15 +59,6 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         if (disposing)
         {
             _connection?.Dispose();
-
-            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", null);
-            Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", null);
-
-            Environment.SetEnvironmentVariable("Jwt__Issuer", null);
-            Environment.SetEnvironmentVariable("Jwt__Audience", null);
-            Environment.SetEnvironmentVariable("Jwt__SigningKey", null);
-            Environment.SetEnvironmentVariable("Jwt__AccessTokenExpirationMinutes", null);
-            Environment.SetEnvironmentVariable("Jwt__RefreshTokenExpirationDays", null);
         }
     }
 }

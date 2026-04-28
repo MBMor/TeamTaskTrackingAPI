@@ -1,6 +1,11 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Testcontainers.PostgreSql;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using TeamTaskTracking.Infrastructure.Persistence;
+using Microsoft.AspNetCore.TestHost;
 
 namespace TeamTaskTracking.Api.PostgresIntegrationTests.Infrastructure;
 
@@ -8,18 +13,10 @@ public sealed class CustomPostgresWebApplicationFactory
     : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgresContainer;
+    private string? _connectionString;
 
     public CustomPostgresWebApplicationFactory()
     {
-        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
-        Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Testing");
-
-        Environment.SetEnvironmentVariable("Jwt__Issuer", "TeamTaskTracking.Api.Tests");
-        Environment.SetEnvironmentVariable("Jwt__Audience", "TeamTaskTracking.Api.Tests.Client");
-        Environment.SetEnvironmentVariable("Jwt__SigningKey", "this-is-a-test-signing-key-with-32-plus-chars");
-        Environment.SetEnvironmentVariable("Jwt__AccessTokenExpirationMinutes", "60");
-        Environment.SetEnvironmentVariable("Jwt__RefreshTokenExpirationDays", "30");
-
         _postgresContainer = new PostgreSqlBuilder("postgres:16.2")
             .WithDatabase("teamtasktracking_tests")
             .WithUsername("postgres")
@@ -31,31 +28,39 @@ public sealed class CustomPostgresWebApplicationFactory
     public async Task InitializeAsync()
     {
         await _postgresContainer.StartAsync();
-
-        Environment.SetEnvironmentVariable(
-            "ConnectionStrings__DefaultConnection",
-            _postgresContainer.GetConnectionString());
+        _connectionString = _postgresContainer.GetConnectionString();
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+
+        builder.UseSetting("Jwt:Issuer", "TeamTaskTracking.Api.Tests");
+        builder.UseSetting("Jwt:Audience", "TeamTaskTracking.Api.Tests.Client");
+        builder.UseSetting("Jwt:SigningKey", "this-is-a-test-signing-key-with-32-plus-chars");
+        builder.UseSetting("Jwt:AccessTokenExpirationMinutes", "15");
+        builder.UseSetting("Jwt:RefreshTokenExpirationDays", "30");
+
+        builder.ConfigureTestServices(services =>
+        {
+            if (string.IsNullOrWhiteSpace(_connectionString))
+            {
+                throw new InvalidOperationException(
+                    "PostgreSQL test container must be initialized before creating the test host.");
+            }
+
+            services.RemoveAll<DbContextOptions<AppDbContext>>();
+
+            services.AddDbContext<AppDbContext>(options =>
+            {
+                options.UseNpgsql(_connectionString);
+            });
+        });
     }
 
     public new async Task DisposeAsync()
     {
         await _postgresContainer.DisposeAsync();
-
-        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", null);
-        Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", null);
-        Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", null);
-
-        Environment.SetEnvironmentVariable("Jwt__Issuer", null);
-        Environment.SetEnvironmentVariable("Jwt__Audience", null);
-        Environment.SetEnvironmentVariable("Jwt__SigningKey", null);
-        Environment.SetEnvironmentVariable("Jwt__AccessTokenExpirationMinutes", null);
-        Environment.SetEnvironmentVariable("Jwt__RefreshTokenExpirationDays", null);
-
         await base.DisposeAsync();
     }
 }
