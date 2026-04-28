@@ -33,7 +33,6 @@ public sealed class TokenService : ITokenService
             new(ClaimTypes.GivenName, user.FirstName),
             new(JwtRegisteredClaimNames.FamilyName, user.LastName),
             new(ClaimTypes.Surname, user.LastName),
-            new(ClaimTypes.Role, user.Role.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 

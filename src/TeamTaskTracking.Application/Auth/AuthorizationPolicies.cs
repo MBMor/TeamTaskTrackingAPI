@@ -6,6 +6,6 @@ public static class AuthorizationPolicies
     public const string AdminOrSelf = "AdminOrSelf";
 
     public const string UsersReadAll = "UsersReadAll";
-    public const string UsersManageRoles = "UserManageRoles";
+    public const string UsersManageRoles = "UsersManageRoles";
 
 }

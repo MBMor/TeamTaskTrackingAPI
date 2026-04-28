@@ -1,5 +1,6 @@
-﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Application.Auth.Requirements;
 using TeamTaskTracking.Domain.Users;
 
@@ -12,8 +13,11 @@ public sealed class AdminOrSelfAuthorizationHandler : AuthorizationHandler<Admin
         AdminOrSelfRequirement requirement,
         Guid resource)
     {
-        var role = context.User.FindFirstValue(ClaimTypes.Role);
-        if (string.Equals(role, UserRole.Admin.ToString(), StringComparison.Ordinal))
+        var isAdmin = context.User.HasClaim(claim =>
+            string.Equals(claim.Type, "permission", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(claim.Value, Permissions.AdminAccess, StringComparison.OrdinalIgnoreCase));
+
+        if (isAdmin)
         {
             context.Succeed(requirement);
             return Task.CompletedTask;

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using TeamTaskTracking.Api.Contracts.Projects;
+using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Application.Projects;
 using TeamTaskTracking.Domain.Users;
 using TeamTaskTracking.Infrastructure.Persistence;
@@ -33,12 +34,15 @@ public sealed class ProjectsController : ControllerBase
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? User.FindFirstValue("sub");
 
-        var role = User.FindFirstValue(ClaimTypes.Role);
-
         if (!Guid.TryParse(userIdClaim, out var currentUserId))
+        {
             return Unauthorized();
+        }
 
-        var isAdmin = string.Equals(role, UserRole.Admin.ToString(), StringComparison.Ordinal);
+        var isAdmin = User.HasClaim(claim =>
+            string.Equals(claim.Type, "permission", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(claim.Value, Permissions.AdminAccess, StringComparison.OrdinalIgnoreCase));
+
 
         var result = await _projectService.GetAllForUserAsync(currentUserId, isAdmin, cancellationToken);
         return Ok(result);

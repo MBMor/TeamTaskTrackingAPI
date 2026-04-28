@@ -9,10 +9,10 @@ using TeamTaskTracking.Infrastructure.Persistence;
 
 namespace TeamTaskTracking.Api.IntegrationTests;
 
-public sealed class RoleAuthorizationTests
+public sealed class PermissionAuthorizationTests
 {
     [Fact]
-    public async Task ChangeUserRole_ForRegularUser_ShouldReturnForbidden()
+    public async Task ChangeUserRole_WithoutUsersManageRolesPermission_ShouldReturnForbidden()
     {
         await using var factory = new CustomWebApplicationFactory();
         using var client = factory.CreateClient();

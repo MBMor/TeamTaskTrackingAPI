@@ -9,7 +9,7 @@ namespace TeamTaskTracking.Api.Controllers;
 
 [ApiController]
 [Route("api/admin")]
-[Authorize]
+[Authorize(Policy = AuthorizationPolicies.AdminOnly)]
 public sealed class AdminController : ControllerBase
 {
     private readonly IUserService _userService;

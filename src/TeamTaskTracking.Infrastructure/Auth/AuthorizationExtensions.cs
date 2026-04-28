@@ -13,7 +13,8 @@ public static class AuthorizationExtensions
 
         services.AddAuthorizationBuilder()
             .AddPolicy(AuthorizationPolicies.AdminOnly, policy =>
-                policy.RequireRole("Admin"))
+                policy.RequireAuthenticatedUser()
+                    .AddRequirements(new PermissionRequirement(Permissions.AdminAccess)))
             .AddPolicy(AuthorizationPolicies.AdminOrSelf, policy =>
                 policy.RequireAuthenticatedUser()
                     .AddRequirements(new AdminOrSelfRequirement()))

@@ -15,7 +15,8 @@ public static class PermissionProvider
             [
                 Permissions.UsersReadSelf,
                 Permissions.UsersReadAll,
-                Permissions.UsersManageRoles
+                Permissions.UsersManageRoles,
+                Permissions.AdminAccess
             ],
             _ => 
             [
