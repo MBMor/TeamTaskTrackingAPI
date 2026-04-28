@@ -1,9 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Security.Claims;
 
 namespace TeamTaskTracking.Application.Auth;
 
-internal class ClaimsPrincipalExtensions
+public static class ClaimsPrincipalExtensions
 {
+    public static bool HasPermission(this ClaimsPrincipal user, string permission)
+    {
+        return user.HasClaim(claim =>
+            string.Equals(claim.Type, CustomClaims.Permission, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(claim.Value, permission, StringComparison.OrdinalIgnoreCase));
+    }
 }

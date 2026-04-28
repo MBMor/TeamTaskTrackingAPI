@@ -23,8 +23,8 @@ public sealed class TaskItem
 
         Id = Guid.NewGuid();
         ProjectId = projectId;
-        Title = title;
-        Description = description;
+        SetTitle(title);
+        SetDescription(description);
         CreateAtUtc = DateTime.UtcNow;
     }
 

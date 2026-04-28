@@ -1,21 +1,23 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using System.Security.Claims;
+using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Application.Projects;
 using TeamTaskTracking.Domain.Projects;
 using TeamTaskTracking.Domain.Users;
 
 namespace TeamTaskTracking.Infrastructure.Projects;
 
-internal class ProjectAuthorizationHandler : AuthorizationHandler<OperationAuthorizationRequirement, Project>
+public sealed class ProjectAuthorizationHandler : AuthorizationHandler<OperationAuthorizationRequirement, Project>
 {
     protected override Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
         OperationAuthorizationRequirement requirement,
         Project resource)
     {
-        var role = context.User.FindFirstValue(ClaimTypes.Role);
-        if (string.Equals(role, UserRole.Admin.ToString(), StringComparison.Ordinal))
+        var isAdmin = context.User.HasPermission(Permissions.AdminAccess);
+
+        if (isAdmin)
         {
             context.Succeed(requirement);
             return Task.CompletedTask;
