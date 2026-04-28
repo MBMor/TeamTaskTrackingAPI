@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using TeamTaskTracking.Application.Auth;
+﻿using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Domain.Users;
 
 namespace TeamTaskTracking.Infrastructure.Auth;
@@ -18,7 +15,7 @@ public static class PermissionProvider
                 Permissions.UsersManageRoles,
                 Permissions.AdminAccess
             ],
-            _ => 
+            _ =>
             [
                 Permissions.UsersReadSelf
             ]

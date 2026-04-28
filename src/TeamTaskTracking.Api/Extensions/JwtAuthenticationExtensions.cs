@@ -1,7 +1,6 @@
-﻿using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using TeamTaskTracking.Application.Auth;
 
 namespace TeamTaskTracking.Api.Extensions;

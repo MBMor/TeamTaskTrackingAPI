@@ -1,13 +1,9 @@
-﻿
-
-using System.Xml.Linq;
-
-namespace TeamTaskTracking.Domain.Projects;
+﻿namespace TeamTaskTracking.Domain.Projects;
 
 public sealed class Project
 {
     public Guid Id { get; private set; }
-    public Guid OwnerUserId { get; private set;  }
+    public Guid OwnerUserId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
@@ -47,7 +43,7 @@ public sealed class Project
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Project name is required.", nameof(name));
 
-        if(name.Length > 150)
+        if (name.Length > 150)
             throw new ArgumentException("Supported length for project name is 150 characters and less",
                 nameof(name));
 

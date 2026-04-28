@@ -8,5 +8,5 @@ public sealed class DuplicateEmailException : Exception
         Email = email;
     }
 
-    public string Email { get;}
+    public string Email { get; }
 }

@@ -1,9 +1,9 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+﻿using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Domain.Users;
 
@@ -37,7 +37,7 @@ public sealed class TokenService : ITokenService
         };
 
         var permissions = PermissionProvider.GetPermissions(user.Role);
-        claims.AddRange(permissions.Select(permission => new Claim("permission", permission)));
+        claims.AddRange(permissions.Select(permission => new Claim(CustomClaims.Permission, permission)));
 
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_jwtOptions.SigningKey));

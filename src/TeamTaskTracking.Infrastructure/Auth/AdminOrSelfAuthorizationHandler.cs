@@ -2,7 +2,6 @@
 using System.Security.Claims;
 using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Application.Auth.Requirements;
-using TeamTaskTracking.Domain.Users;
 
 namespace TeamTaskTracking.Infrastructure.Auth;
 
@@ -13,9 +12,7 @@ public sealed class AdminOrSelfAuthorizationHandler : AuthorizationHandler<Admin
         AdminOrSelfRequirement requirement,
         Guid resource)
     {
-        var isAdmin = context.User.HasClaim(claim =>
-            string.Equals(claim.Type, "permission", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(claim.Value, Permissions.AdminAccess, StringComparison.OrdinalIgnoreCase));
+        var isAdmin = context.User.HasPermission(Permissions.AdminAccess);
 
         if (isAdmin)
         {

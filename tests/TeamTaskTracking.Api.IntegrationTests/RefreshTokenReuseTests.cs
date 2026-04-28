@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using TeamTaskTracking.Api.IntegrationTests.Infrastructure;

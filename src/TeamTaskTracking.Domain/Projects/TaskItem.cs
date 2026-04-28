@@ -4,16 +4,16 @@ namespace TeamTaskTracking.Domain.Projects;
 
 public sealed class TaskItem
 {
-    public Guid Id {get; private set;}
+    public Guid Id { get; private set; }
     public Guid ProjectId { get; private set; }
     public string Title { get; private set; } = null!;
     public string? Description { get; private set; }
     public string? MyProperty { get; private set; }
     public bool IsCompleted { get; private set; }
-    public  DateTime CreateAtUtc { get; private set; }
+    public DateTime CreateAtUtc { get; private set; }
 
     private TaskItem()
-    {            
+    {
     }
 
     public TaskItem(Guid projectId, string title, string? description)
@@ -27,7 +27,7 @@ public sealed class TaskItem
         Description = description;
         CreateAtUtc = DateTime.UtcNow;
     }
-    
+
     public void Update(string title, string? description)
     {
         SetTitle(title);
@@ -49,7 +49,7 @@ public sealed class TaskItem
             throw new ArgumentException("Task title is required.", nameof(title));
 
         if (title.Length > 150)
-            throw new ArgumentException("Supported length for project name is 150 characters and less", 
+            throw new ArgumentException("Supported length for project name is 150 characters and less",
                 nameof(title));
 
         Title = title.Trim();
@@ -58,7 +58,7 @@ public sealed class TaskItem
     private void SetDescription(string? description)
     {
         if (description?.Length > 1500)
-            throw new ArgumentException("Supported length for description is 1500 characters and less", 
+            throw new ArgumentException("Supported length for description is 1500 characters and less",
                 nameof(description));
 
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();

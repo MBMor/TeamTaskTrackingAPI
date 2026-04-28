@@ -1,6 +1,6 @@
-﻿using System.Net;
+﻿using FluentAssertions;
+using System.Net;
 using System.Net.Http.Json;
-using FluentAssertions;
 using TeamTaskTracking.Api.PostgresIntegrationTests.Infrastructure;
 
 namespace TeamTaskTracking.Api.PostgresIntegrationTests.Auth;

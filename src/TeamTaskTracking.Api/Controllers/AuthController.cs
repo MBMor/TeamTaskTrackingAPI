@@ -1,9 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using TeamTaskTracking.Api.Contracts.Auth;
 using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Application.Users;
-using TeamTaskTracking.Domain.Users;
 
 namespace TeamTaskTracking.Api.Controllers;
 

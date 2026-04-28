@@ -1,9 +1,8 @@
-﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TeamTaskTracking.Application.Auth.Requirements;
 using TeamTaskTracking.Application.Users;
-using TeamTaskTracking.Domain.Users;
 
 namespace TeamTaskTracking.Api.Controllers;
 
@@ -59,7 +58,7 @@ public sealed class UsersController : ControllerBase
         if (user is null)
             return NotFound();
 
-        return Ok(user);    
+        return Ok(user);
     }
 
 }

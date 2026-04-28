@@ -1,25 +1,23 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using TeamTaskTracking.Api.Contracts.Projects;
 using TeamTaskTracking.Application.Auth;
 using TeamTaskTracking.Application.Projects;
-using TeamTaskTracking.Domain.Users;
-using TeamTaskTracking.Infrastructure.Persistence;
 
 
 namespace TeamTaskTracking.Api.Controllers;
 
 [ApiController]
 [Route("api/projects")]
+[Authorize]
 public sealed class ProjectsController : ControllerBase
 {
     private readonly IProjectService _projectService;
     private readonly IAuthorizationService _authorizationService;
 
     public ProjectsController(
-        IProjectService projectService, 
+        IProjectService projectService,
         IAuthorizationService authorizationService)
     {
         _projectService = projectService;
@@ -39,10 +37,7 @@ public sealed class ProjectsController : ControllerBase
             return Unauthorized();
         }
 
-        var isAdmin = User.HasClaim(claim =>
-            string.Equals(claim.Type, "permission", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(claim.Value, Permissions.AdminAccess, StringComparison.OrdinalIgnoreCase));
-
+        var isAdmin = User.HasPermission(Permissions.AdminAccess);
 
         var result = await _projectService.GetAllForUserAsync(currentUserId, isAdmin, cancellationToken);
         return Ok(result);

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace TeamTaskTracking.Application.Common.Exceptions;
+﻿namespace TeamTaskTracking.Application.Common.Exceptions;
 
 public sealed class InvalidCredentialsException : Exception
 {

@@ -4,7 +4,7 @@ public sealed class RefreshToken
 {
     public Guid Id { get; private set; }
     public Guid UserId { get; private set; }
-    public Guid TokenFamilyId { get; private set; }   
+    public Guid TokenFamilyId { get; private set; }
     public string TokenHash { get; private set; } = string.Empty;
     public DateTime ExpiresAtUtc { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }

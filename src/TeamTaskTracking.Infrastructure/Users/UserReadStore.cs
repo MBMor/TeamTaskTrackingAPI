@@ -1,7 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using TeamTaskTracking.Application.Users;
 using TeamTaskTracking.Domain.Users;
 using TeamTaskTracking.Infrastructure.Persistence;

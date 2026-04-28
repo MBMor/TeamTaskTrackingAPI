@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using FluentValidation;
+﻿using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using TeamTaskTracking.Application.Projects;
 using TeamTaskTracking.Domain.Projects;
 using TeamTaskTracking.Infrastructure.Persistence;
@@ -13,8 +13,8 @@ internal class ProjectService : IProjectService
     private readonly IValidator<UpdateProjectCommand> _updateValidator;
 
     public ProjectService(
-        AppDbContext dbContext, 
-        IValidator<CreateProjectCommand> createValidator, 
+        AppDbContext dbContext,
+        IValidator<CreateProjectCommand> createValidator,
         IValidator<UpdateProjectCommand> updateValidator)
     {
         _dbContext = dbContext;
@@ -45,7 +45,7 @@ internal class ProjectService : IProjectService
 
         if (!isAdmin)
         {
-            query = query.Where(x => x.OwnerUserId == userId); 
+            query = query.Where(x => x.OwnerUserId == userId);
         }
 
         return await query
@@ -77,15 +77,17 @@ internal class ProjectService : IProjectService
 
     public async Task<Project?> GetProjectForAuthorizationAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await _dbContext.Projects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        return await _dbContext.Projects
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
     public async Task<ProjectDto> CreateAsync(CreateProjectCommand command, CancellationToken cancellationToken)
     {
         await _createValidator.ValidateAndThrowAsync(command, cancellationToken);
 
         var project = new Project(
-            command.OwnerUserId ,
-            command.Name, 
+            command.OwnerUserId,
+            command.Name,
             command.Description);
 
         _dbContext.Projects.Add(project);
@@ -107,7 +109,7 @@ internal class ProjectService : IProjectService
 
         if (project is null)
             return false;
-        
+
 
         project.UpdateDetails(command.Name, command.Description);
 

@@ -1,7 +1,7 @@
-﻿using System.Net;
+﻿using FluentAssertions;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using FluentAssertions;
 using TeamTaskTracking.Api.IntegrationTests.Infrastructure;
 
 namespace TeamTaskTracking.Api.IntegrationTests;

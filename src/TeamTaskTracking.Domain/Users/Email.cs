@@ -7,7 +7,7 @@ public sealed class Email : IEquatable<Email>
     public string Value { get; }
 
     private Email(string value)
-    {  Value = value; }
+    { Value = value; }
 
     public static Email Create(string value)
     {
@@ -45,7 +45,7 @@ public sealed class Email : IEquatable<Email>
 
     public override bool Equals(object? obj)
     {
-        return obj is Email other && Equals(other); 
+        return obj is Email other && Equals(other);
     }
 
     public override int GetHashCode()

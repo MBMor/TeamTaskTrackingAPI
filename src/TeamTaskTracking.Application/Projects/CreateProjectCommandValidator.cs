@@ -1,11 +1,8 @@
 ﻿using FluentValidation;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace TeamTaskTracking.Application.Projects;
 
-public sealed class CreateProjectCommandValidator : AbstractValidator<CreateProjectCommand> 
+public sealed class CreateProjectCommandValidator : AbstractValidator<CreateProjectCommand>
 {
     public CreateProjectCommandValidator()
     {

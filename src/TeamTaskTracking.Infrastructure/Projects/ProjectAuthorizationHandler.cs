@@ -10,8 +10,8 @@ namespace TeamTaskTracking.Infrastructure.Projects;
 internal class ProjectAuthorizationHandler : AuthorizationHandler<OperationAuthorizationRequirement, Project>
 {
     protected override Task HandleRequirementAsync(
-        AuthorizationHandlerContext context, 
-        OperationAuthorizationRequirement requirement, 
+        AuthorizationHandlerContext context,
+        OperationAuthorizationRequirement requirement,
         Project resource)
     {
         var role = context.User.FindFirstValue(ClaimTypes.Role);

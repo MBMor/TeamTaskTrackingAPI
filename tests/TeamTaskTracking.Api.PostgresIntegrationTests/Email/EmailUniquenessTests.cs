@@ -1,8 +1,8 @@
-﻿using System.Net;
-using System.Net.Http.Json;
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net;
+using System.Net.Http.Json;
 using TeamTaskTracking.Api.PostgresIntegrationTests.Infrastructure;
 using TeamTaskTracking.Domain.Users;
 using TeamTaskTracking.Infrastructure.Persistence;
@@ -76,7 +76,7 @@ public sealed class EmailUniquenessTests
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        
+
         var email = DomainEmail.Create("test@example.com");
 
         db.Users.Add(new User(email, "A", "B"));
